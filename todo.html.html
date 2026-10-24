@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>오늘의 퀘스트 - RPG 할 일 관리</title>
+  <style>
+    /* Reset & Base Styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --accent: #f59e0b;
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --stat-str: #f87171;
+      --stat-int: #60a5fa;
+      --stat-dex: #34d399;
+      --stat-wil: #c084fc;
+      --gold: #eab308;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Common Card Styling */
+    .card-box {
+      background: var(--card-bg);
+      border: 2px solid var(--card-border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+
+    /* Auth Header & Status Bar */
+    .auth-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--accent);
+      object-fit: cover;
+    }
+
+    .user-name {
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .auth-action-btn {
+      background: #334155;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .auth-action-btn:hover {
+      background: #475569;
+    }
+
+    .sync-status {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-top: -8px;
+      margin-bottom: 4px;
+      text-align: right;
+      padding-right: 4px;
+    }
+
+    .sync-status.saving {
+      color: var(--accent);
+    }
+
+    .sync-status.saved {
+      color: var(--success);
+    }
+
+    .sync-status.error {
+      color: var(--danger);
+    }
+
+    /* Login Overlay Card */
+    .login-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 16px;
+      padding: 36px 20px;
+    }
+
+    .google-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: #ffffff;
+      color: #000000;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+      transition: transform 0.1s, background-color 0.2s;
+    }
+
+    .google-btn:active {
+      transform: scale(0.97);
+    }
+
+    .error-banner {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid var(--danger);
+      color: var(--stat-str);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      text-align: left;
+      width: 100%;
+      word-break: break-all;
+      margin-top: 8px;
+    }
+
+    /* Top Utility Bar (Gold & Pet Quick View) */
+    .top-resource-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .resource-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .gold-text {
+      color: var(--gold);
+    }
+
+    .pet-quick-btn {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: var(--accent);
+      padding: 4px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 800;
+      transition: all 0.2s;
+    }
+
+    .pet-quick-btn:hover {
+      background: var(--accent);
+      color: #000;
+    }
+
+    /* Player Status Card Header */
+    .hero-status {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .avatar-container {
+      position: relative;
+      cursor: pointer;
+    }
+
+    .avatar {
+      width: 68px;
+      height: 68px;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      border: 2px solid #fef08a;
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+      flex-shrink: 0;
+      transition: transform 0.2s;
+    }
+
+    .avatar-container:hover .avatar {
+      transform: scale(1.05);
+    }
+
+    .stat-notify-dot {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: #ef4444;
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 800;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--card-bg);
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+      70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    .hero-info {
+      flex: 1;
+    }
+
+    .hero-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .hero-title-tag {
+      font-size: 0.75rem;
+      color: var(--accent);
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .level-badge {
+      background: var(--primary);
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.85rem;
+      padding: 2px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .hero-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hero-name {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .combat-power {
+      font-size: 0.8rem;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 2px 8px;
+      border-radius: 8px;
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+
+    .streak-tag {
+      font-size: 0.8rem;
+      color: var(--accent);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    /* Stat Quick View */
+    .stat-summary-bar {
+      display: flex;
+      justify-content: space-between;
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 10px;
+      padding: 8px 12px;
+      margin-bottom: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border: 1px solid var(--card-border);
+      cursor: pointer;
+    }
+
+    .stat-chip { display: flex; align-items: center; gap: 4px; }
+    .chip-str { color: var(--stat-str); }
+    .chip-int { color: var(--stat-int); }
+    .chip-dex { color: var(--stat-dex); }
+    .chip-wil { color: var(--stat-wil); }
+
+    /* Progress Bars (XP & Today Task) */
+    .stat-bar-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .bar-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .bar-bg {
+      width: 100%;
+      height: 12px;
+      background-color: #0f172a;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--card-border);
+      position: relative;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.4s ease;
+    }
+
+    .xp-fill {
+      background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    }
+
+    .quest-fill {
+      background: linear-gradient(90deg, #6366f1, #818cf8);
+    }
+
+    /* Date Header */
+    .date-text {
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    /* Quest Input Form */
+    .input-form-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .input-form {
+      display: flex;
+      gap: 8px;
+    }
+
+    .input-field {
+      flex: 1;
+      padding: 12px 16px;
+      font-size: 0.95rem;
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      color: #fff;
+      border-radius: 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-field:focus {
+      border-color: var(--primary);
+    }
+
+    /* Difficulty Selector */
+    .difficulty-selector {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .diff-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-right: 4px;
+    }
+
+    .diff-btn {
+      flex: 1;
+      padding: 6px 10px;
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .diff-btn.active[data-diff="easy"] {
+      background: rgba(52, 211, 153, 0.2);
+      border-color: #34d399;
+      color: #34d399;
+    }
+    .diff-btn.active[data-diff="normal"] {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: #818cf8;
+      color: #818cf8;
+    }
+    .diff-btn.active[data-diff="hard"] {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: #f87171;
+      color: #f87171;
+    }
+
+    .add-btn {
+      padding: 12px 20px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .add-btn:active {
+      transform: scale(0.96);
+    }
+
+    /* Controls Bar */
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 4px;
+    }
+
+    .quest-count-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .clear-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 4px;
+      transition: color 0.2s;
+    }
+
+    .clear-btn:hover {
+      color: var(--danger);
+    }
+
+    /* Todo List */
+    .todo-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      list-style: none;
+    }
+
+    /* Quest Item Card */
+    .todo-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 14px 16px;
+      border-radius: 14px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s, border-color 0.2s;
+      word-break: break-all;
+    }
+
+    .todo-item.completed {
+      background: rgba(30, 41, 59, 0.5);
+      border-color: rgba(51, 65, 85, 0.5);
+    }
+
+    .todo-item-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      margin-right: 12px;
+    }
+
+    /* Custom Checkbox */
+    .checkbox {
+      width: 26px;
+      height: 26px;
+      border: 2px solid var(--card-border);
+      background: #0f172a;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.2s;
+      font-size: 15px;
+    }
+
+    .checkbox.checked {
+      background: var(--success);
+      border-color: var(--success);
+      color: #fff;
+    }
+
+    .todo-content {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+    }
+
+    .todo-text {
+      font-size: 0.95rem;
+      color: var(--text);
+      line-height: 1.4;
+      transition: color 0.2s, text-decoration 0.2s;
+      cursor: pointer;
+    }
+
+    .todo-text.completed {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .tags-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .diff-tag {
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 1px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .diff-tag.easy { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+    .diff-tag.normal { background: rgba(99, 102, 241, 0.15); color: #818cf8; }
+    .diff-tag.hard { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+
+    .xp-reward-tag {
+      font-size: 0.7rem;
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .gold-reward-tag {
+      font-size: 0.7rem;
+      background: rgba(234, 179, 8, 0.15);
+      color: var(--gold);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    /* Delete Button */
+    .delete-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 2px 6px;
+      line-height: 1;
+      border-radius: 4px;
+      transition: color 0.2s;
+      flex-shrink: 0;
+    }
+
+    .delete-btn:hover {
+      color: var(--danger);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    /* Achievements Bar */
+    .achievements-box {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .badge-item {
+      flex: 1;
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 8px 4px;
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      opacity: 0.35;
+      transition: opacity 0.3s, border-color 0.3s;
+    }
+
+    .badge-item.unlocked {
+      opacity: 1;
+      border-color: var(--accent);
+      color: var(--text);
+      background: rgba(245, 158, 11, 0.05);
+    }
+
+    .badge-icon {
+      font-size: 1.2rem;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    /* Floating XP / Gold Notification Effect */
+    .floating-popup {
+      position: fixed;
+      pointer-events: none;
+      font-weight: 900;
+      font-size: 1.2rem;
+      animation: floatUp 1.2s ease-out forwards;
+      z-index: 1000;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    }
+
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-45px) scale(1.2); }
+    }
+
+    /* Universal Modal Structure (Dismissible anywhere) */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.82);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      cursor: pointer; /* Indicates tap anywhere to dismiss */
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: var(--card-bg);
+      border: 2px solid var(--card-border);
+      border-radius: 20px;
+      padding: 24px;
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      transform: scale(0.88);
+      transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+    }
+
+    .modal-overlay.active .modal-card {
+      transform: scale(1);
+    }
+
+    .modal-title {
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .modal-hint-close {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 14px;
+      opacity: 0.8;
+    }
+
+    /* Stat Upgrade Modal Specifics */
+    .stat-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 16px 0;
+      text-align: left;
+    }
+
+    .stat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0f172a;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+    }
+
+    .stat-info-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stat-name {
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .stat-desc {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .stat-val-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stat-value {
+      font-weight: 800;
+      font-size: 1rem;
+      min-width: 24px;
+      text-align: center;
+    }
+
+    .stat-add-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 900;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s;
+    }
+
+    .stat-add-btn:active {
+      transform: scale(0.9);
+    }
+
+    .stat-add-btn:disabled {
+      background: var(--card-border);
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .stat-point-pool {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent);
+      background: rgba(245, 158, 11, 0.1);
+      padding: 6px 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      display: inline-block;
+    }
+
+    /* Pet Modal Specific Styling */
+    .pet-card-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin: 12px 0;
+    }
+
+    .pet-avatar {
+      width: 80px;
+      height: 80px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 2px dashed var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.8rem;
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+    }
+
+    .pet-name-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .pet-bonus-badge {
+      font-size: 0.8rem;
+      background: rgba(52, 211, 153, 0.15);
+      color: var(--stat-dex);
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-weight: 700;
+    }
+
+    /* Equipment Shop/Inventory Modal */
+    .shop-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 240px;
+      overflow-y: auto;
+      padding-right: 4px;
+      margin: 12px 0;
+    }
+
+    .shop-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      padding: 10px 12px;
+      border-radius: 12px;
+    }
+
+    .shop-item-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .shop-item-icon {
+      font-size: 1.4rem;
+    }
+
+    .shop-item-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-align: left;
+    }
+
+    .shop-item-stat {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-align: left;
+    }
+
+    .buy-btn {
+      background: linear-gradient(135deg, var(--gold), #ca8a04);
+      color: #000;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .buy-btn.owned {
+      background: var(--card-border);
+      color: var(--text-muted);
+      cursor: default;
+    }
+
+    /* Footer Info */
+    .footer-info {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Date Bar -->
+    <div class="date-text" id="dateText">2026년 10월 24일 토요일</div>
+
+    <!-- Auth Bar -->
+    <div class="auth-bar" id="authBar">
+      <div id="authContent" style="width: 100%;">
+        <!-- Dynamic auth content rendered here -->
+      </div>
+    </div>
+
+    <!-- Sync status indicator -->
+    <div class="sync-status" id="syncStatus">연습 모드 (로컬 저장중)</div>
+
+    <!-- Login View Area (Visible when not logged in) -->
+    <div id="loginSection" class="card-box login-container">
+      <div style="font-size: 3rem;">⚔️</div>
+      <h2 style="font-size: 1.3rem; font-weight: 800;">오늘의 퀘스트</h2>
+      <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+        구글 계정으로 로그인하여 나만의 할 일 퀘스트 및 캐릭터 성장을 안전하게 클라우드에 보관하세요!
+      </p>
+      <button type="button" class="google-btn" id="loginBtn">
+        <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.1.83-.64 2.08-1.84 2.92l2.84 2.2c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.84-2.2c-.76.53-1.78.9-3.12.9-2.38 0-4.41-1.57-5.14-3.74L.88 13.04C2.38 16.01 5.45 18 9 18z"/><path fill="#FBBC05" d="M3.86 10.78c-.18-.53-.28-1.1-.28-1.78s.1-1.25.28-1.78L.88 4.96C.32 6.08 0 7.5 0 9s.32 2.92.88 4.04l2.98-2.26z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.45 0 2.38 1.99.88 4.96l2.98 2.26C4.59 5.05 6.62 3.58 9 3.58z"/></svg>
+        구글 계정으로 로그인
+      </button>
+      <button type="button" class="auth-action-btn" id="skipLoginBtn" style="background: rgba(255,255,255,0.1); padding: 8px 16px; font-size: 0.85rem;">
+        🎮 로그인 없이 연습 모드로 계속하기
+      </button>
+      <div id="authErrorMsg" class="error-banner" style="display: none;"></div>
+    </div>
+
+    <!-- Main App Container (Hidden when logged out, visible on login or local mode fallback) -->
+    <div id="mainAppSection" style="display: flex; flex-direction: column; gap: 16px;">
+      <!-- Top Resource Bar (Gold & Pet View) -->
+      <div class="top-resource-bar">
+        <div class="resource-item gold-text">
+          <span>🪙 Gold:</span>
+          <span id="goldValText">0</span>
+        </div>
+        <button type="button" class="pet-quick-btn" id="openPetBtn">
+          🐾 동반자 펫 보기
+        </button>
+      </div>
+
+      <!-- Hero / Player Status Card -->
+      <div class="card-box">
+        <div class="hero-status">
+          <div class="avatar-container" id="avatarBtn" title="클릭하여 스탯 성장창 열기">
+            <div class="avatar" id="avatarIcon">🗡️</div>
+            <div class="stat-notify-dot" id="statNotifyDot" style="display: none;">!</div>
+          </div>
+          <div class="hero-info">
+            <div class="hero-title-row">
+              <span class="hero-title-tag" id="heroTitleTag">초보 모험가</span>
+              <span class="level-badge" id="levelBadge">LV. 1</span>
+            </div>
+            <div class="hero-name-row">
+              <span class="hero-name" id="heroNameText">오늘의 용사</span>
+              <span class="combat-power" id="combatPowerText">전투력 12</span>
+            </div>
+            <div class="streak-tag">
+              <span>🔥 연속 완수: <strong id="streakCount">0</strong>일</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Stat Summary Bar -->
+        <div class="stat-summary-bar" id="statSummaryBar" title="클릭하여 스탯 찍기">
+          <div class="stat-chip chip-str">💪 힘 <span id="strVal">1</span></div>
+          <div class="stat-chip chip-int">🧠 지능 <span id="intVal">1</span></div>
+          <div class="stat-chip chip-dex">⚡ 민첩 <span id="dexVal">1</span></div>
+          <div class="stat-chip chip-wil">🛡️ 의지 <span id="wilVal">1</span></div>
+        </div>
+
+        <!-- Stat Bars -->
+        <div class="stat-bar-container">
+          <!-- XP Progress Bar -->
+          <div class="bar-group">
+            <div class="bar-label">
+              <span>경험치 (XP)</span>
+              <span id="xpText">0 / 100</span>
+            </div>
+            <div class="bar-bg">
+              <div class="bar-fill xp-fill" id="xpBarFill" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <!-- Today Tasks Progress Bar -->
+          <div class="bar-group">
+            <div class="bar-label">
+              <span>오늘의 퀘스트 진행률</span>
+              <span id="questProgressCount">0 / 0</span>
+            </div>
+            <div class="bar-bg">
+              <div class="bar-fill quest-fill" id="questBarFill" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Achievements Badge Row -->
+      <div class="achievements-box">
+        <div class="badge-item" id="badgeFirst">
+          <span class="badge-icon">🌱</span>
+          <span>첫 걸음</span>
+        </div>
+        <div class="badge-item" id="badgeCompleteAll">
+          <span class="badge-icon">👑</span>
+          <span>올클리어</span>
+        </div>
+        <div class="badge-item" id="badgeLevel5">
+          <span class="badge-icon">⭐</span>
+          <span>숙련자</span>
+        </div>
+        <div class="badge-item" id="badgePetMaster">
+          <span class="badge-icon">🐾</span>
+          <span>펫 마스터</span>
+        </div>
+      </div>
+
+      <!-- Input Card -->
+      <div class="card-box" style="padding: 16px;">
+        <div class="input-form-container">
+          <form id="todoForm" class="input-form" onsubmit="return false;">
+            <input 
+              type="text" 
+              id="todoInput" 
+              class="input-field" 
+              placeholder="새로운 퀘스트 등록..." 
+              maxlength="100" 
+              autocomplete="off"
+            />
+            <button type="submit" id="addBtn" class="add-btn">수락</button>
+          </form>
+
+          <!-- Difficulty Selector -->
+          <div class="difficulty-selector">
+            <span class="diff-label">난이도:</span>
+            <button type="button" class="diff-btn active" data-diff="easy">쉬움 (+20XP/10🪙)</button>
+            <button type="button" class="diff-btn" data-diff="normal">보통 (+35XP/20🪙)</button>
+            <button type="button" class="diff-btn" data-diff="hard">어려움 (+60XP/40🪙)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls">
+        <span class="quest-count-title">퀘스트 목록</span>
+        <button id="clearCompletedBtn" class="clear-btn">완료한 퀘스트 정리</button>
+      </div>
+
+      <!-- Todo List Items -->
+      <ul id="todoList" class="todo-list"></ul>
+    </div>
+
+    <!-- Footer Notice -->
+    <div class="footer-info" id="footerNoticeText">
+      내 할 일은 내 계정에만 저장되고 다른 사람은 볼 수 없습니다
+    </div>
+  </div>
+
+  <!-- Level Up Modal Overlay -->
+  <div class="modal-overlay" id="levelUpModal">
+    <div class="modal-card" style="border-color: var(--accent);">
+      <div style="font-size: 3.2rem; margin-bottom: 8px;">🎉</div>
+      <div class="modal-title" style="color: var(--accent);">LEVEL UP!</div>
+      <div id="modalDesc" style="color: var(--text-muted); font-size: 0.95rem;">레벨이 올랐습니다! 멋진 성장이군요!</div>
+      <div class="modal-hint-close">(화면 아무곳이나 누르면 닫힙니다)</div>
+    </div>
+  </div>
+
+  <!-- Stat Upgrade & Character Info Modal -->
+  <div class="modal-overlay" id="statModal">
+    <div class="modal-card">
+      <div class="modal-title">⚔️ 용사 스탯 수련</div>
+      <div class="stat-point-pool">
+        남은 포인트: <span id="statPointPool">0</span> P
+      </div>
+
+      <div class="stat-list">
+        <!-- STR -->
+        <div class="stat-row">
+          <div class="stat-info-left">
+            <span style="font-size: 1.2rem;">💪</span>
+            <div>
+              <div class="stat-name" style="color: var(--stat-str);">힘 (STR)</div>
+              <div class="stat-desc">기본 전투력 상승</div>
+            </div>
+          </div>
+          <div class="stat-val-group">
+            <span class="stat-value" id="modalStrVal">1</span>
+            <button class="stat-add-btn" id="addStrBtn">+</button>
+          </div>
+        </div>
+
+        <!-- INT -->
+        <div class="stat-row">
+          <div class="stat-info-left">
+            <span style="font-size: 1.2rem;">🧠</span>
+            <div>
+              <div class="stat-name" style="color: var(--stat-int);">지능 (INT)</div>
+              <div class="stat-desc">퀘스트 XP 보너스 %</div>
+            </div>
+          </div>
+          <div class="stat-val-group">
+            <span class="stat-value" id="modalIntVal">1</span>
+            <button class="stat-add-btn" id="addIntBtn">+</button>
+          </div>
+        </div>
+
+        <!-- DEX -->
+        <div class="stat-row">
+          <div class="stat-info-left">
+            <span style="font-size: 1.2rem;">⚡</span>
+            <div>
+              <div class="stat-name" style="color: var(--stat-dex);">민첩 (DEX)</div>
+              <div class="stat-desc">골드 획득량 증가</div>
+            </div>
+          </div>
+          <div class="stat-val-group">
+            <span class="stat-value" id="modalDexVal">1</span>
+            <button class="stat-add-btn" id="addDexBtn">+</button>
+          </div>
+        </div>
+
+        <!-- WIL -->
+        <div class="stat-row">
+          <div class="stat-info-left">
+            <span style="font-size: 1.2rem;">🛡️</span>
+            <div>
+              <div class="stat-name" style="color: var(--stat-wil);">의지 (WIL)</div>
+              <div class="stat-desc">연속 완수 방어력</div>
+            </div>
+          </div>
+          <div class="stat-val-group">
+            <span class="stat-value" id="modalWilVal">1</span>
+            <button class="stat-add-btn" id="addWilBtn">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-hint-close">(화면 아무곳이나 누르면 닫힙니다)</div>
+    </div>
+  </div>
+
+  <!-- Pet Modal -->
+  <div class="modal-overlay" id="petModal">
+    <div class="modal-card">
+      <div class="modal-title">🐾 동반자 펫 관리</div>
+      <div class="pet-card-content">
+        <div class="pet-avatar" id="petIcon">🥚</div>
+        <div class="pet-name-title" id="petNameText">알 슬라임 (Lv.1)</div>
+        <div class="pet-bonus-badge" id="petBonusText">추가 XP +0%</div>
+      </div>
+      
+      <!-- Pet XP Bar -->
+      <div class="bar-group" style="margin-bottom: 12px;">
+        <div class="bar-label">
+          <span>펫 친밀도(XP)</span>
+          <span id="petXpText">0 / 50</span>
+        </div>
+        <div class="bar-bg">
+          <div class="bar-fill xp-fill" id="petXpBarFill" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
+        퀘스트를 완료하면 펫도 함께 경험치를 얻고 성장합니다!<br>펫이 진화할수록 더 많은 XP 보너스를 줍니다.
+      </div>
+
+      <div class="modal-hint-close">(화면 아무곳이나 누르면 닫힙니다)</div>
+    </div>
+  </div>
+
+  <script type="module">
+    // ===== 내 파이어베이스 설정값 =====
+    const firebaseConfig = {
+      apiKey: "AIzaSyDhu7vbwEhLsBz2HNuPrhPjLiZq8CKohB0",
+      authDomain: "my-wep-d0e71.firebaseapp.com",
+      projectId: "my-wep-d0e71",
+      storageBucket: "my-wep-d0e71.firebasestorage.app",
+      messagingSenderId: "873947935387",
+      appId: "1:873947935387:web:fd369df6f1a3c991f8cc3e"
+    };
+
+    // Firebase Module Imports (v10.12.2)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // Application state
+    let state = {
+      todos: [],
+      xp: 0,
+      level: 1,
+      gold: 0,
+      streak: 0,
+      statPoints: 0,
+      stats: { str: 1, int: 1, dex: 1, wil: 1 },
+      pet: { level: 1, xp: 0 },
+      achievements: { first: false, completeAll: false, level5: false, petMaster: false }
+    };
+
+    let currentUser = null;
+    let isFirebaseReady = false;
+    let app, auth, db;
+    let debounceTimer = null;
+    let selectedDifficulty = 'easy';
+
+    const REWARD_MAP = {
+      easy: { xp: 20, gold: 10 },
+      normal: { xp: 35, gold: 20 },
+      hard: { xp: 60, gold: 40 }
+    };
+
+    const TITLES_AND_AVATARS = [
+      { minLevel: 1, title: "초보 모험가", avatar: "🗡️" },
+      { minLevel: 3, title: "기사 견습생", avatar: "⚔️" },
+      { minLevel: 5, title: "정예 모험가", avatar: "🛡️" },
+      { minLevel: 8, title: "왕실 기사", avatar: "⚜️" },
+      { minLevel: 12, title: "대용사", avatar: "🔱" },
+      { minLevel: 15, title: "지평선의 영웅", avatar: "👑" }
+    ];
+
+    const PET_EVOLUTIONS = [
+      { minLevel: 1, name: "알 슬라임", icon: "🥚", bonusXpPercent: 0 },
+      { minLevel: 3, name: "아기 아기라", icon: "🐣", bonusXpPercent: 5 },
+      { minLevel: 5, name: "블루 슬라임", icon: "💧", bonusXpPercent: 10 },
+      { minLevel: 8, name: "불꽃 아기용", icon: "🐲", bonusXpPercent: 18 },
+      { minLevel: 12, name: "전설의 신수", icon: "🦄", bonusXpPercent: 25 }
+    ];
+
+    // DOM Elements
+    const dateTextEl = document.getElementById('dateText');
+    const levelBadgeEl = document.getElementById('levelBadge');
+    const heroTitleTagEl = document.getElementById('heroTitleTag');
+    const combatPowerTextEl = document.getElementById('combatPowerText');
+    const avatarIconEl = document.getElementById('avatarIcon');
+    const avatarBtnEl = document.getElementById('avatarBtn');
+    const statNotifyDotEl = document.getElementById('statNotifyDot');
+    const streakCountEl = document.getElementById('streakCount');
+    const goldValTextEl = document.getElementById('goldValText');
+    const heroNameTextEl = document.getElementById('heroNameText');
+
+    const strValEl = document.getElementById('strVal');
+    const intValEl = document.getElementById('intVal');
+    const dexValEl = document.getElementById('dexVal');
+    const wilValEl = document.getElementById('wilVal');
+    const statSummaryBarEl = document.getElementById('statSummaryBar');
+
+    const xpTextEl = document.getElementById('xpText');
+    const xpBarFillEl = document.getElementById('xpBarFill');
+    const questProgressCountEl = document.getElementById('questProgressCount');
+    const questBarFillEl = document.getElementById('questBarFill');
+
+    const todoFormEl = document.getElementById('todoForm');
+    const todoInputEl = document.getElementById('todoInput');
+    const todoListEl = document.getElementById('todoList');
+    const clearCompletedBtnEl = document.getElementById('clearCompletedBtn');
+    const diffBtns = document.querySelectorAll('.diff-btn');
+
+    const authBarEl = document.getElementById('authBar');
+    const authContentEl = document.getElementById('authContent');
+    const syncStatusEl = document.getElementById('syncStatus');
+    const loginSectionEl = document.getElementById('loginSection');
+    const mainAppSectionEl = document.getElementById('mainAppSection');
+    const loginBtnEl = document.getElementById('loginBtn');
+    const skipLoginBtnEl = document.getElementById('skipLoginBtn');
+    const authErrorMsgEl = document.getElementById('authErrorMsg');
+    const footerNoticeTextEl = document.getElementById('footerNoticeText');
+
+    const modalOverlays = document.querySelectorAll('.modal-overlay');
+    const levelUpModalEl = document.getElementById('levelUpModal');
+    const modalDescEl = document.getElementById('modalDesc');
+    
+    const statModalEl = document.getElementById('statModal');
+    const statPointPoolEl = document.getElementById('statPointPool');
+    const modalStrValEl = document.getElementById('modalStrVal');
+    const modalIntValEl = document.getElementById('modalIntVal');
+    const modalDexValEl = document.getElementById('modalDexVal');
+    const modalWilValEl = document.getElementById('modalWilVal');
+
+    const addStrBtn = document.getElementById('addStrBtn');
+    const addIntBtn = document.getElementById('addIntBtn');
+    const addDexBtn = document.getElementById('addDexBtn');
+    const addWilBtn = document.getElementById('addWilBtn');
+
+    const openPetBtnEl = document.getElementById('openPetBtn');
+    const petModalEl = document.getElementById('petModal');
+    const petIconEl = document.getElementById('petIcon');
+    const petNameTextEl = document.getElementById('petNameText');
+    const petBonusTextEl = document.getElementById('petBonusText');
+    const petXpTextEl = document.getElementById('petXpText');
+    const petXpBarFillEl = document.getElementById('petXpBarFill');
+
+    const badgeFirstEl = document.getElementById('badgeFirst');
+    const badgeCompleteAllEl = document.getElementById('badgeCompleteAll');
+    const badgeLevel5El = document.getElementById('badgeLevel5');
+    const badgePetMasterEl = document.getElementById('badgePetMaster');
+
+    // Date Utilities
+    function setFormattedDate() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth() + 1;
+      const date = today.getDate();
+      const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+      const dayOfWeek = dayNames[today.getDay()];
+
+      dateTextEl.textContent = `${year}년 ${month}월 ${date}일 ${dayOfWeek}`;
+    }
+
+    // LocalStorage Fallback Logic
+    function loadLocalData() {
+      try {
+        const stored = localStorage.getItem('rpg_todo_growth_state_v2');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          state = { 
+            ...state, 
+            ...parsed,
+            stats: { ...state.stats, ...(parsed.stats || {}) },
+            pet: { ...state.pet, ...(parsed.pet || {}) },
+            achievements: { ...state.achievements, ...(parsed.achievements || {}) }
+          };
+        }
+      } catch (e) {
+        console.error('Local data load error:', e);
+      }
+    }
+
+    function saveLocalData() {
+      try {
+        localStorage.setItem('rpg_todo_growth_state_v2', JSON.stringify(state));
+      } catch (e) {
+        console.error('Local data save error:', e);
+      }
+    }
+
+    // Firestore Syncing
+    async function loadFirestoreData(uid) {
+      if (!db || !uid) return;
+      try {
+        updateSyncStatus("불러오는 중...", "saving");
+        const docRef = doc(db, 'users', uid, 'data', 'todos');
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data && data.state) {
+            state = {
+              ...state,
+              ...data.state,
+              stats: { ...state.stats, ...(data.state.stats || {}) },
+              pet: { ...state.pet, ...(data.state.pet || {}) },
+              achievements: { ...state.achievements, ...(data.state.achievements || {}) }
+            };
+          } else if (data && data.items) {
+            state.todos = data.items;
+          }
+        }
+        updateSyncStatus("저장됨", "saved");
+      } catch (err) {
+        console.error("Firestore Load Error:", err);
+        updateSyncStatus("불러오기 오류", "error");
+        showAuthError(`데이터 로드 오류: ${err.code || err.message}`);
+      }
+    }
+
+    async function saveFirestoreData(uid) {
+      if (!db || !uid) return;
+      try {
+        updateSyncStatus("저장 중…", "saving");
+        const docRef = doc(db, 'users', uid, 'data', 'todos');
+        
+        // Save format: users/{uid}/data/todos with { items: [...], state: {...} }
+        await setDoc(docRef, {
+          items: state.todos,
+          state: state,
+          updatedAt: new Date().toISOString()
+        });
+
+        updateSyncStatus("저장됨", "saved");
+      } catch (err) {
+        console.error("Firestore Save Error:", err);
+        updateSyncStatus("저장 실패", "error");
+        showAuthError(`저장 오류: ${err.code || err.message}`);
+      }
+    }
+
+    // Trigger save (Debounced 0.6s)
+    function triggerSave() {
+      saveLocalData();
+      if (isFirebaseReady && currentUser) {
+        updateSyncStatus("저장 준비중…", "saving");
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          saveFirestoreData(currentUser.uid);
+        }, 600);
+      } else {
+        updateSyncStatus("연습 모드 (로컬 저장중)", "");
+      }
+    }
+
+    function updateSyncStatus(text, className) {
+      syncStatusEl.textContent = text;
+      syncStatusEl.className = `sync-status ${className}`;
+    }
+
+    function showAuthError(msg) {
+      if (!msg) {
+        authErrorMsgEl.style.display = 'none';
+        authErrorMsgEl.textContent = '';
+      } else {
+        authErrorMsgEl.style.display = 'block';
+        authErrorMsgEl.textContent = msg;
+      }
+    }
+
+    // Calculations
+    function getXpForNextLevel(lvl) { return 100 + (lvl - 1) * 35; }
+    function getPetXpForNextLevel(lvl) { return 50 + (lvl - 1) * 25; }
+
+    function getCurrentPetInfo() {
+      let petInfo = PET_EVOLUTIONS[0];
+      for (const p of PET_EVOLUTIONS) {
+        if (state.pet.level >= p.minLevel) petInfo = p;
+      }
+      return petInfo;
+    }
+
+    // Reward Logic
+    function completeQuestRewards(difficulty, event) {
+      const rewards = REWARD_MAP[difficulty || 'easy'];
+
+      const intBonusPercent = (state.stats.int - 1) * 5;
+      const petBonusPercent = getCurrentPetInfo().bonusXpPercent;
+      const totalXpBonus = intBonusPercent + petBonusPercent;
+
+      const dexBonusPercent = (state.stats.dex - 1) * 8;
+
+      const finalXp = Math.round(rewards.xp * (1 + totalXpBonus / 100));
+      const finalGold = Math.round(rewards.gold * (1 + dexBonusPercent / 100));
+
+      state.xp += finalXp;
+      state.gold += finalGold;
+
+      addPetXP(Math.round(finalXp * 0.4));
+
+      if (event) {
+        showFloatingText(`+${finalXp} XP  +${finalGold}🪙`, event.clientX, event.clientY, '#fbbf24');
+      }
+
+      let leveledUp = false;
+      let nextLevelXp = getXpForNextLevel(state.level);
+
+      while (state.xp >= nextLevelXp) {
+        state.xp -= nextLevelXp;
+        state.level += 1;
+        state.statPoints += 3;
+        leveledUp = true;
+        nextLevelXp = getXpForNextLevel(state.level);
+      }
+
+      if (leveledUp) {
+        triggerLevelUp();
+      }
+
+      checkAchievements();
+      triggerSave();
+      renderStats();
+    }
+
+    function addPetXP(amount) {
+      state.pet.xp += amount;
+      let required = getPetXpForNextLevel(state.pet.level);
+
+      while (state.pet.xp >= required) {
+        state.pet.xp -= required;
+        state.pet.level += 1;
+        required = getPetXpForNextLevel(state.pet.level);
+      }
+    }
+
+    function triggerLevelUp() {
+      modalDescEl.textContent = `축하합니다! 레벨 ${state.level}(으)로 성장했습니다! 스탯 포인트 3P를 얻었습니다.`;
+      levelUpModalEl.classList.add('active');
+    }
+
+    function showFloatingText(text, x, y, color = '#f59e0b') {
+      const popup = document.createElement('div');
+      popup.className = 'floating-popup';
+      popup.textContent = text;
+      popup.style.color = color;
+      popup.style.left = `${x - 20}px`;
+      popup.style.top = `${y - 20}px`;
+      document.body.appendChild(popup);
+
+      setTimeout(() => popup.remove(), 1200);
+    }
+
+    // Stat Upgrades
+    function upgradeStat(type, e) {
+      if (e) e.stopPropagation();
+      if (state.statPoints <= 0) return;
+
+      state.stats[type] += 1;
+      state.statPoints -= 1;
+
+      checkAchievements();
+      triggerSave();
+      renderStats();
+      renderStatModal();
+    }
+
+    // Achievements Logic
+    function checkAchievements() {
+      if (!state.achievements.first && state.todos.some(t => t.completed)) {
+        state.achievements.first = true;
+      }
+      if (state.todos.length > 0 && state.todos.every(t => t.completed)) {
+        state.achievements.completeAll = true;
+      }
+      if (!state.achievements.level5 && state.level >= 5) {
+        state.achievements.level5 = true;
+      }
+      if (!state.achievements.petMaster && state.pet.level >= 5) {
+        state.achievements.petMaster = true;
+      }
+      renderBadges();
+    }
+
+    function renderBadges() {
+      if (state.achievements.first) badgeFirstEl.classList.add('unlocked');
+      if (state.achievements.completeAll) badgeCompleteAllEl.classList.add('unlocked');
+      if (state.achievements.level5) badgeLevel5El.classList.add('unlocked');
+      if (state.achievements.petMaster) badgePetMasterEl.classList.add('unlocked');
+    }
+
+    // Render Functions
+    function renderStats() {
+      levelBadgeEl.textContent = `LV. ${state.level}`;
+      streakCountEl.textContent = state.streak;
+      goldValTextEl.textContent = state.gold;
+
+      const power = (state.level * 10) + (state.stats.str * 5) + (state.stats.int * 3) + (state.stats.dex * 3) + (state.stats.wil * 3) + (state.pet.level * 4);
+      combatPowerTextEl.textContent = `전투력 ${power}`;
+
+      let currentTitle = TITLES_AND_AVATARS[0];
+      for (const t of TITLES_AND_AVATARS) {
+        if (state.level >= t.minLevel) currentTitle = t;
+      }
+      heroTitleTagEl.textContent = currentTitle.title;
+      avatarIconEl.textContent = currentTitle.avatar;
+
+      if (state.statPoints > 0) {
+        statNotifyDotEl.style.display = 'flex';
+        statNotifyDotEl.textContent = state.statPoints;
+      } else {
+        statNotifyDotEl.style.display = 'none';
+      }
+
+      strValEl.textContent = state.stats.str;
+      intValEl.textContent = state.stats.int;
+      dexValEl.textContent = state.stats.dex;
+      wilValEl.textContent = state.stats.wil;
+
+      const requiredXp = getXpForNextLevel(state.level);
+      xpTextEl.textContent = `${state.xp} / ${requiredXp}`;
+      const xpPercent = Math.min(100, Math.round((state.xp / requiredXp) * 100));
+      xpBarFillEl.style.width = `${xpPercent}%`;
+
+      const total = state.todos.length;
+      const completed = state.todos.filter(t => t.completed).length;
+      questProgressCountEl.textContent = `${completed} / ${total}`;
+
+      const questPercent = total === 0 ? 0 : Math.round((completed / total) * 100);
+      questBarFillEl.style.width = `${questPercent}%`;
+    }
+
+    function renderStatModal() {
+      statPointPoolEl.textContent = state.statPoints;
+      modalStrValEl.textContent = state.stats.str;
+      modalIntValEl.textContent = state.stats.int;
+      modalDexValEl.textContent = state.stats.dex;
+      modalWilValEl.textContent = state.stats.wil;
+
+      const buttons = statModalEl.querySelectorAll('.stat-add-btn');
+      buttons.forEach(btn => {
+        btn.disabled = state.statPoints <= 0;
+      });
+    }
+
+    function renderPetModal() {
+      const petInfo = getCurrentPetInfo();
+      petIconEl.textContent = petInfo.icon;
+      petNameTextEl.textContent = `${petInfo.name} (Lv.${state.pet.level})`;
+      petBonusTextEl.textContent = `보너스 경험치 +${petInfo.bonusXpPercent}%`;
+
+      const reqXp = getPetXpForNextLevel(state.pet.level);
+      petXpTextEl.textContent = `${state.pet.xp} / ${reqXp}`;
+      const pct = Math.min(100, Math.round((state.pet.xp / reqXp) * 100));
+      petXpBarFillEl.style.width = `${pct}%`;
+    }
+
+    function renderTodos() {
+      todoListEl.innerHTML = '';
+
+      if (state.todos.length === 0) {
+        todoListEl.innerHTML = `
+          <div class="empty-state card-box">
+            🛡️ 수락한 퀘스트가 없습니다.<br>오늘 수행할 목표를 입력하여 성장을 시작해보세요!
+          </div>
+        `;
+        renderStats();
+        return;
+      }
+
+      state.todos.forEach((todo) => {
+        const li = document.createElement('li');
+        li.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+
+        const leftDiv = document.createElement('div');
+        leftDiv.className = 'todo-item-left';
+
+        const checkbox = document.createElement('div');
+        checkbox.className = `checkbox ${todo.completed ? 'checked' : ''}`;
+        checkbox.textContent = todo.completed ? '✓' : '';
+        checkbox.addEventListener('click', (e) => toggleTodo(todo.id, e));
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'todo-content';
+
+        const span = document.createElement('span');
+        span.className = `todo-text ${todo.completed ? 'completed' : ''}`;
+        span.textContent = todo.text;
+        span.addEventListener('click', (e) => toggleTodo(todo.id, e));
+
+        const tagsRow = document.createElement('div');
+        tagsRow.className = 'tags-row';
+
+        const diffTag = document.createElement('span');
+        diffTag.className = `diff-tag ${todo.difficulty || 'easy'}`;
+        diffTag.textContent = (todo.difficulty || 'easy').toUpperCase();
+
+        const rewards = REWARD_MAP[todo.difficulty || 'easy'];
+        const xpTag = document.createElement('span');
+        xpTag.className = 'xp-reward-tag';
+        xpTag.textContent = `+${rewards.xp}XP`;
+
+        const goldTag = document.createElement('span');
+        goldTag.className = 'gold-reward-tag';
+        goldTag.textContent = `+${rewards.gold}🪙`;
+
+        tagsRow.appendChild(diffTag);
+        tagsRow.appendChild(xpTag);
+        tagsRow.appendChild(goldTag);
+
+        contentDiv.appendChild(span);
+        contentDiv.appendChild(tagsRow);
+
+        leftDiv.appendChild(checkbox);
+        leftDiv.appendChild(contentDiv);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.innerHTML = '&times;';
+        deleteBtn.setAttribute('aria-label', '삭제');
+        deleteBtn.addEventListener('click', () => deleteTodo(todo.id));
+
+        li.appendChild(leftDiv);
+        li.appendChild(deleteBtn);
+
+        todoListEl.appendChild(li);
+      });
+
+      renderStats();
+    }
+
+    // Todo Actions
+    function addTodo() {
+      const text = todoInputEl.value.trim();
+      if (!text) return;
+
+      const newTodo = {
+        id: Date.now(),
+        text: text,
+        completed: false,
+        difficulty: selectedDifficulty
+      };
+
+      state.todos.push(newTodo);
+      triggerSave();
+      renderTodos();
+
+      todoInputEl.value = '';
+      todoInputEl.focus();
+    }
+
+    function toggleTodo(id, event) {
+      state.todos = state.todos.map(todo => {
+        if (todo.id === id) {
+          const isNowCompleted = !todo.completed;
+          if (isNowCompleted) {
+            completeQuestRewards(todo.difficulty, event);
+          }
+          return { ...todo, completed: isNowCompleted };
+        }
+        return todo;
+      });
+
+      checkAchievements();
+      triggerSave();
+      renderTodos();
+    }
+
+    function deleteTodo(id) {
+      state.todos = state.todos.filter(todo => todo.id !== id);
+      triggerSave();
+      renderTodos();
+    }
+
+    function clearCompleted() {
+      state.todos = state.todos.filter(todo => !todo.completed);
+      triggerSave();
+      renderTodos();
+    }
+
+    // UI Auth State Renderer
+    function renderAuthState(user) {
+      currentUser = user;
+      if (user) {
+        heroNameTextEl.textContent = user.displayName || '오늘의 용사';
+        authContentEl.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="user-profile">
+              <img src="${user.photoURL || 'https://placehold.co/32x32/6366f1/ffffff?text=U'}" class="user-avatar" alt="Avatar" onerror="this.src='https://placehold.co/32x32/6366f1/ffffff?text=U'">
+              <span class="user-name">${user.displayName || '용사님'}</span>
+            </div>
+            <button type="button" class="auth-action-btn" id="logoutBtn">로그아웃</button>
+          </div>
+        `;
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+
+        loginSectionEl.style.display = 'none';
+        mainAppSectionEl.style.display = 'flex';
+        footerNoticeTextEl.textContent = "내 할 일은 내 계정에만 저장되고 다른 사람은 볼 수 없습니다";
+      } else {
+        authContentEl.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 700; color: var(--text-muted);">연습 모드 (비로그인)</span>
+            <span style="font-size: 0.75rem; color: var(--accent);">로컬 전용</span>
+          </div>
+        `;
+
+        if (isFirebaseReady) {
+          loginSectionEl.style.display = 'flex';
+          mainAppSectionEl.style.display = 'none';
+        } else {
+          // Practice Mode fallback if config missing or offline
+          loginSectionEl.style.display = 'none';
+          mainAppSectionEl.style.display = 'flex';
+          footerNoticeTextEl.textContent = "현재 연습 모드입니다 (이 목록은 지금 쓰는 브라우저에만 저장됩니다)";
+        }
+      }
+    }
+
+    // Auth Handlers
+    async function handleLogin() {
+      showAuthError('');
+      if (!isFirebaseReady) {
+        showAuthError("파이어베이스 설정값이 연결되지 않아 연습 모드로 전환합니다.");
+        startLocalPracticeMode();
+        return;
+      }
+      try {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+      } catch (err) {
+        console.error("Login Failed:", err);
+        if (err.code === 'auth/unauthorized-domain') {
+          const currentHost = window.location.hostname || window.location.host;
+          showAuthError(`
+            <strong>[파이어베이스 승인 도메인 오류]</strong><br>
+            현재 도메인(<code>${currentHost}</code>)이 Firebase Console에 등록되어 있지 않습니다.<br><br>
+            📌 <strong>해결 방법:</strong><br>
+            1. <a href="https://console.firebase.google.com" target="_blank" style="color:#60a5fa;">Firebase Console</a> 접속<br>
+            2. Authentication → Settings → Authorized domains<br>
+            3. 'Add domain' 버튼 클릭 후 <code>${currentHost}</code> 등록<br><br>
+            👇 승인 전이라도 아래 <strong>'연습 모드'</strong> 버튼을 누르면 바로 사용하실 수 있습니다!
+          `);
+        } else {
+          showAuthError(`로그인 실패 (${err.code || 'UNKNOWN'}): ${err.message}`);
+        }
+      }
+    }
+
+    function startLocalPracticeMode() {
+      loginSectionEl.style.display = 'none';
+      mainAppSectionEl.style.display = 'flex';
+      footerNoticeTextEl.textContent = "현재 연습 모드입니다 (이 목록은 지금 쓰는 브라우저에만 저장됩니다)";
+      updateSyncStatus("연습 모드 (로컬 저장중)", "");
+      loadLocalData();
+      renderBadges();
+      renderTodos();
+    }
+
+    async function handleLogout() {
+      if (!isFirebaseReady || !auth) return;
+      try {
+        await signOut(auth);
+      } catch (err) {
+        console.error("Logout Error:", err);
+        showAuthError(`로그아웃 오류: ${err.code || err.message}`);
+      }
+    }
+
+    // Firebase Initialization
+    function initFirebase() {
+      try {
+        if (!firebaseConfig || !firebaseConfig.apiKey) {
+          throw new Error("firebaseConfig 설정값이 지정되지 않았습니다.");
+        }
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+        isFirebaseReady = true;
+
+        onAuthStateChanged(auth, async (user) => {
+          renderAuthState(user);
+          if (user) {
+            await loadFirestoreData(user.uid);
+            renderBadges();
+            renderTodos();
+          } else {
+            loadLocalData();
+            renderBadges();
+            renderTodos();
+          }
+        });
+      } catch (err) {
+        console.warn("Firebase fallback to LocalStorage Practice Mode:", err.message);
+        isFirebaseReady = false;
+        loadLocalData();
+        renderAuthState(null);
+        renderBadges();
+        renderTodos();
+      }
+    }
+
+    // Event Listeners
+    diffBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        diffBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedDifficulty = btn.getAttribute('data-diff');
+      });
+    });
+
+    modalOverlays.forEach(overlay => {
+      overlay.addEventListener('click', () => {
+        overlay.classList.remove('active');
+      });
+    });
+
+    avatarBtnEl.addEventListener('click', () => {
+      renderStatModal();
+      statModalEl.classList.add('active');
+    });
+
+    statSummaryBarEl.addEventListener('click', () => {
+      renderStatModal();
+      statModalEl.classList.add('active');
+    });
+
+    openPetBtnEl.addEventListener('click', () => {
+      renderPetModal();
+      petModalEl.classList.add('active');
+    });
+
+    addStrBtn.addEventListener('click', (e) => upgradeStat('str', e));
+    addIntBtn.addEventListener('click', (e) => upgradeStat('int', e));
+    addDexBtn.addEventListener('click', (e) => upgradeStat('dex', e));
+    addWilBtn.addEventListener('click', (e) => upgradeStat('wil', e));
+
+    todoFormEl.addEventListener('submit', (e) => {
+      e.preventDefault();
+      addTodo();
+    });
+
+    clearCompletedBtnEl.addEventListener('click', clearCompleted);
+    loginBtnEl.addEventListener('click', handleLogin);
+    if (skipLoginBtnEl) {
+      skipLoginBtnEl.addEventListener('click', startLocalPracticeMode);
+    }
+
+    // Initial load
+    window.onload = function() {
+      setFormattedDate();
+      initFirebase();
+    };
+  </script>
+</body>
+</html>
